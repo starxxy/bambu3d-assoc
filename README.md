@@ -10,7 +10,7 @@
 
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11%20x64-0078D4)](https://github.com/starxxy/bambu3d-assoc)
 [![Version](https://img.shields.io/badge/version-v1.3.0-green)](https://github.com/starxxy/bambu3d-assoc/releases)
-[![License](https://img.shields.io/badge/license-Freeware%20%C2%B7%20All%20Rights%20Reserved-orange)](#许可与著作权)
+[![License](https://img.shields.io/badge/license-Freeware%20%C2%B7%20Personal%20Use%20Only-orange)](#许可与著作权)
 [![No Network](https://img.shields.io/badge/network-none-brightgreen)](#为什么值得信任)
 
 </div>
@@ -50,10 +50,6 @@ Windows 默认不认 3D 打印文件——`.3mf`、`.stl`、`.step` 在资源管
 | 其他网格 | `fbx` |
 
 CAD 格式（STEP / STP）由安装包**自带的 OpenCASCADE（OCCT）内核**渲染，无需额外下载。
-
-> v1.0.0 曾支持 `ply` `3ds` `off` `dae` `x3d` `wrl` `iges` `igs` `brep` `bgcode`
-> 等 10 个扩展名，v1.1.0 起更换为「Bambu Studio 实际能打开的格式」。旧扩展名仍会在
-> 安装/卸载时被清理，不会留下残迹。
 
 ---
 
@@ -198,7 +194,7 @@ git checkout v1.2.4                          # 切到该版源码快照
 | 抢占默认程序 | 只写 `ShellEx` 缩略图处理器，**不碰**扩展名默认打开方式 |
 | 卸载残留 | v1.2.4 专门做了残留清理：空壳键、打开方式记录、缩略图缓存全清 |
 | 注册表乱写 | 卸载时按 `HKLM` / `HKCU` 双根还原，并主动清扫历史版本的非标准 GUID |
-| 是否收费 | **完全免费**，无试用期、无激活码、无功能阉割 |
+| 是否收费 | **完全免费（仅限个人非商业用途）**，无试用期、无激活码、无功能阉割 |
 | 会不会改我文件 | 只读文件来渲染缩略图，**从不修改**你的模型文件 |
 
 ---
@@ -226,19 +222,17 @@ git checkout v1.2.4                          # 切到该版源码快照
 
 你**可以**：
 
-- 免费下载、安装、使用（个人与商业用途均可）
+- 免费下载、安装、使用（**仅限个人非商业用途**）
 - 原样传播本安装包，注明出处
 
 你**不可以**：
 
+- 将本软件用于任何商业用途（含企业内部业务、对外收费服务、集成进商业产品）
 - 反编译、逆向工程、修改后二次分发
 - 去除或篡改作者署名、官方渠道链接、版权声明
 - 将本软件或其衍生品用于倒卖、冒充原创
 
 源码公开是为了便于审计与学习，**不构成**开源许可授权。详见 [LICENSE](LICENSE)。
-
-> 注：`src/license.cpp` 是 v1.2.4 及更早版本「每日兑换码」付费机制的**退役代码**，
-> 自 v1.3.0 起不参与编译；公开仓库中其中的密钥已脱敏，仅为保留实现结构作历史记录。
 
 ---
 

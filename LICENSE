@@ -12,7 +12,8 @@
 
 本软件**免费提供**。在遵守本协议的前提下，你被授权：
 
-- **使用**：免费下载、安装、运行本软件，个人用途与商业用途均可，无功能限制、无试用期、无激活码。
+- **使用**：免费下载、安装、运行本软件，**仅限个人非商业用途**，无功能限制、无试用期、无激活码。
+  任何商业用途均需事先取得著作权人的书面许可。
 - **传播**：完整、原样地复制与分发本软件的**原始安装包**，不得修改其中任何文件，并须注明出处与本协议。
 - **查阅**：阅读本仓库公开的源码，用于学习、安全审计与研究目的。
 
@@ -24,6 +25,8 @@
 - **修改与衍生**：修改、改编、翻译本软件，或基于本软件创建衍生作品。
 - **二次分发篡改版**：将修改后的版本、或去除/替换了作者署名、官方渠道链接、版权声明的版本进行分发。
 - **去除署名**：删除、隐藏、篡改本软件中的作者署名、版权声明、官方渠道链接、以及源码与二进制中内嵌的权利声明。
+- **商业使用**：将本软件用于任何商业目的，包括但不限于企业内部业务、对外收费服务、
+  集成进商业产品，或用于有利可图的经营活动。
 - **商业转售**：将本软件或其衍生品用于倒卖、收费分发、冒充原创或其他营利性侵权用途。
 
 ### 3. 关于「源码公开」
@@ -52,7 +55,9 @@ Copyright © 2026 9Hao Creation. All rights reserved.
 
 This software is provided **free of charge**. Subject to this agreement, you may:
 
-- **Use** it for personal or commercial purposes, with no feature limits, trial period, or activation code.
+- **Use** it for **personal, non-commercial purposes only**, with no feature limits, trial
+  period, or activation code. Any commercial use requires prior written permission from the
+  copyright holder.
 - **Redistribute** the unmodified official installer, in its entirety, with attribution and this agreement included.
 - **Read** the source code published in this repository for learning, security auditing, and research.
 
@@ -67,6 +72,9 @@ Without prior written permission from the copyright holder, you may **not**:
   or copyright notices removed or altered.
 - Remove, hide, or tamper with the author's name, copyright notices, official channel
   links, or the rights notices embedded in the source and binaries.
+- Use this software for any commercial purpose, including but not limited to internal
+  business operations, paid services offered to third parties, or integration into a
+  commercial product.
 - Resell this software or its derivatives, charge for redistribution, or claim it as your own.
 
 ### 3. On "Source Availability"
