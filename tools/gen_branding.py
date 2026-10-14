@@ -1,7 +1,7 @@
 # Dev tool: regenerate src/branding.cpp with freshly XOR-obfuscated UTF-16 blobs.
 #
 # The manager exe keeps the author/attribution strings and the official channel
-# URLs out of plain `strings(1)` view (see docs/分发与防盗专案.md). The blobs are
+# URLs out of plain `strings(1)` view. The blobs are
 # decoded at runtime by branding.cpp; edit STRINGS below and re-run:
 #   py tools/gen_branding.py
 #

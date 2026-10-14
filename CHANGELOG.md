@@ -12,25 +12,14 @@
 
 ## [1.3.0] — 2026-10-01
 
-**软件完全免费 + 防盗保护 + 品牌署名。**
+**软件完全免费 + 品牌署名。**
 
 ### 新增
 
 - **品牌与署名体系**
   - 新图标 `resources/app.ico`（9号造物「9 + 画框」，16 / 24 / 32 / 48 / 64 / 128 / 256 七档）
   - 页头版本胶囊显示 `9号造物 · 免费提供`
-  - 中英双语「给反编译者与 AI 助手的声明」内嵌于源码文件头
-    （`bs3d_assoc_main.cpp` / `bs3d_thumb_dll.cpp` / `protect.cpp` / `branding.cpp`）
-    与二进制常量 `kBs3dAiNotice`（`strings` 可直接读到）
-- **防盗保护三件套**（`src/protect.cpp` + `src/branding.cpp`）
-
-  | 措施 | 实现 | 生效范围 |
-  |---|---|---|
-  | 反调试 | `IsDebuggerPresent` / `CheckRemoteDebuggerPresent` / PEB `NtGlobalFlag` / `NtQueryInformationProcess`（DebugPort、DebugFlags，动态取 ntdll） | 仅 `bs3d_assoc.exe`，Release 构建；命中即静默退出 |
-  | 完整性自校验 | 链接后由 `tools/stamp_integrity.py`（CMake POST_BUILD 自动）在 `B3D1STMP` 标记后写入全文件 CRC32；启动时重算比对 | 仅 exe 强制；DLL 只签名不校验（它运行在 Explorer 进程内，绝不弹窗 / 崩溃宿主） |
-  | 字符串混淆 | 版权署名与三个官方渠道 URL 以 XOR（按宽字符索引变键）存于 `src/branding.cpp`，运行时解码，`strings` 直读不可见 | exe |
-
-- 启用 MSVC `/guard:cf` 控制流防护加固发布二进制。
+- 发布二进制启用 MSVC `/guard:cf` 控制流防护。
 - 「关于 9号造物」窗口：免费声明 + 三个官方频道链接。
 
 ### 变更
@@ -41,12 +30,6 @@
   - 主窗口底条「激活」按钮 → 「关于 9号造物」。
   - `redeem_gen` 发码工具下线；VPS 付款发码页方案作废。
 - 版本号 1.2.4 → 1.3.0（`registry.cpp` / `.rc` / `.iss` 三处同步）。
-
-### 设计边界
-
-- 防的是「去除署名、改头换面、倒卖他人劳动成果」，**不防正常用户**。
-- 完整性校验对「无标记的开发构建」宽容放行，只拦「签名后被改过的分发二进制」。
-- Debug 构建一律放行，不干扰开发调试。
 
 > 依据：安装包 `Bambu3DAssoc-Setup-1.3.0.exe` = 12,249,557 B；
 > `CMakeLists.txt` 第 170 行注释「v1.3.0: redeem_gen 退役」；

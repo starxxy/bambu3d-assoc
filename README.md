@@ -170,11 +170,10 @@ ISCC.exe installer\Bambu3DAssoc.iss
 │   ├── thumbnailcore.cpp       # 缩略图渲染调度
 │   ├── occplugin.cpp           # OpenCASCADE 内核加载
 │   ├── rasterizer.cpp          # 网格光栅化
-│   ├── protect.cpp             # 反调试 + 完整性自校验
+│   ├── protect.cpp             # 启动自检与完整性校验
 │   └── ...                     # 解析器 / 缓存 / 工具
 ├── include/bs3d/               # 对外头文件
 ├── design/                     # 视觉稿（ui_draft_glassmorphism.html 是唯一真相）
-├── docs/                       # 方案文档
 ├── tools/                      # 构建 / 校验 / 出图脚本
 ├── resources/                  # 图标资源
 ├── installer/Bambu3DAssoc.iss  # Inno Setup 6 打包脚本
@@ -210,7 +209,7 @@ git checkout v1.2.4                          # 切到该版源码快照
 
 | 版本 | 时间 | 主要内容 |
 |---|---|---|
-| **v1.3.0** | 2026-10-01 | **完全免费** + 防盗保护三件套 + 品牌图标与署名 |
+| **v1.3.0** | 2026-10-01 | **完全免费** + 品牌图标与署名 |
 | v1.2.4 | 2026-09-29 | 卸载残留专项（空壳键 / 打开方式 / 缩略图缓存） |
 | v1.2.3 | 2026-09-29 | 闪烁修复（双缓冲 + `WS_CLIPCHILDREN`） |
 | v1.2.2 | 2026-09-29 | 安装范围移入向导；OCCT 内核改为必带 |
@@ -258,5 +257,5 @@ git checkout v1.2.4                          # 切到该版源码快照
 ---
 
 <div align="center">
-<sub>本作品由 9号造物 独立开发。未经授权的反编译、篡改、去除署名或二次分发均属侵权。</sub>
+<sub>本作品由 9号造物 独立开发。</sub>
 </div>
