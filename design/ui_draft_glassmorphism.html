@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bambu 3D 文件关联管理器 · 苹果毛玻璃视觉稿</title>
+<style>
+  :root{
+    --blue:#0A84FF;
+    --blue-deep:#0060DF;
+    --green:#30D158;
+    --ink:#1D1D1F;
+    --muted:#6E6E73;
+    --muted-2:#8E8E93;
+    --hair:rgba(0,0,0,.08);
+    --glass-line:rgba(255,255,255,.65);
+    --glass-hi:rgba(255,255,255,.85);
+    --win-radius:22px;
+    --card-radius:16px;
+    --font:-apple-system,"SF Pro Text","SF Pro Display","PingFang SC","Microsoft YaHei UI","Microsoft YaHei",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--font);
+    color:var(--ink);
+    background:#0b1020;
+    min-height:100vh;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+    padding:56px 40px 96px;
+  }
+
+  /* ---------- wallpaper : macOS-ish blurred colour field + grain ---------- */
+  .wall{position:fixed;inset:-20%;z-index:-2;
+    background:
+      radial-gradient(52% 42% at 18% 22%, #6f8cff 0%, rgba(111,140,255,0) 62%),
+      radial-gradient(48% 46% at 82% 18%, #ff8fb1 0%, rgba(255,143,177,0) 60%),
+      radial-gradient(56% 52% at 76% 78%, #37d6c4 0%, rgba(55,214,196,0) 58%),
+      radial-gradient(60% 56% at 22% 84%, #b98bff 0%, rgba(185,139,255,0) 60%),
+      linear-gradient(150deg,#141a35 0%,#1b2347 45%,#241a3d 100%);
+    filter:saturate(120%);
+    animation:drift 26s ease-in-out infinite alternate;
+  }
+  @keyframes drift{
+    0%{transform:translate3d(0,0,0) scale(1.02)}
+    100%{transform:translate3d(-3%,2%,0) scale(1.08)}
+  }
+  .grain{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.055;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  /* ---------- board header ---------- */
+  .board-head{max-width:1180px;margin:0 auto 40px;color:#fff;text-shadow:0 1px 20px rgba(0,0,0,.35)}
+  .board-head .kicker{font-size:12px;letter-spacing:.22em;text-transform:uppercase;opacity:.7;margin-bottom:12px}
+  .board-head h1{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+  .board-head p{margin-top:12px;font-size:15px;opacity:.82;max-width:720px;line-height:1.6}
+
+  /* ---------- token strip ---------- */
+  .tokens{max-width:1180px;margin:0 auto 52px;display:flex;flex-wrap:wrap;gap:10px}
+  .token{backdrop-filter:blur(22px) saturate(180%);-webkit-backdrop-filter:blur(22px) saturate(180%);
+    background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);
+    border-radius:999px;padding:8px 15px;display:flex;align-items:center;gap:9px;
+    color:#fff;font-size:12.5px;letter-spacing:.01em}
+  .swatch{width:15px;height:15px;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.5)}
+  .token b{font-weight:600;opacity:.95}
+  .token span{opacity:.7}
+
+  /* ---------- shared glass ---------- */
+  .glass{
+    backdrop-filter:blur(40px) saturate(185%);
+    -webkit-backdrop-filter:blur(40px) saturate(185%);
+    background:linear-gradient(158deg,rgba(255,255,255,.74) 0%,rgba(255,255,255,.55) 52%,rgba(255,255,255,.62) 100%);
+    border:1px solid var(--glass-line);
+    box-shadow:
+      0 34px 90px rgba(6,10,26,.42),
+      0 6px 22px rgba(6,10,26,.28),
+      inset 0 1px 0 var(--glass-hi),
+      inset 0 -1px 0 rgba(255,255,255,.28);
+    border-radius:var(--win-radius);
+  }
+  .window{position:relative;overflow:hidden}
+  .titlebar{
+    height:46px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 16px 0 20px;border-bottom:1px solid rgba(0,0,0,.06);
+    background:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,.18));
+    user-select:none;
+  }
+  .tb-title{font-size:12.5px;font-weight:600;color:#3a3a3c;letter-spacing:.01em}
+  .tb-controls{display:flex;align-items:center;gap:2px}
+  .tb-controls i{display:block;width:34px;height:26px;border-radius:7px;position:relative;opacity:.62}
+  .tb-controls i:hover{background:rgba(0,0,0,.06);opacity:.9}
+  .tb-controls i::before,.tb-controls i::after{content:"";position:absolute;left:50%;top:50%;background:#3a3a3c;transform:translate(-50%,-50%)}
+  .tb-min::before{width:11px;height:1.5px;border-radius:1px}
+  .tb-max::before{width:10px;height:10px;background:transparent;border:1.5px solid #3a3a3c;border-radius:2px}
+  .tb-close::before{width:12px;height:1.5px;transform:translate(-50%,-50%) rotate(45deg);border-radius:1px}
+  .tb-close::after{width:12px;height:1.5px;transform:translate(-50%,-50%) rotate(-45deg);border-radius:1px}
+  .tb-close:hover{background:rgba(255,59,48,.9)}
+  .tb-close:hover::before,.tb-close:hover::after{background:#fff}
+
+  .stage{display:flex;flex-direction:column;align-items:center;gap:64px}
+  .shot{position:relative;width:1080px;max-width:100%}
+  .shot .label{position:absolute;top:-30px;left:6px;color:#fff;font-size:12px;letter-spacing:.16em;
+    text-transform:uppercase;opacity:.7;font-weight:600}
+
+  /* ---------- window 1 : main ---------- */
+  .win-main{width:100%}
+  .main-body{padding:22px 26px 0}
+  .head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:2px 2px 20px}
+  .head h2{font-size:19px;font-weight:700;letter-spacing:-.015em}
+  .head .sub{margin-top:5px;font-size:12.5px;color:var(--muted)}
+  .chips{display:flex;gap:8px;flex-shrink:0}
+  .chip{font-size:11.5px;color:#4a4a4d;background:rgba(255,255,255,.62);
+    border:1px solid rgba(255,255,255,.9);border-radius:999px;padding:5px 12px;
+    box-shadow:0 1px 3px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.9);white-space:nowrap}
+  .chip.accent{background:linear-gradient(180deg,#3da0ff,#0A84FF);color:#fff;border-color:rgba(255,255,255,.4);
+    box-shadow:0 4px 12px rgba(10,132,255,.42),inset 0 1px 0 rgba(255,255,255,.5)}
+
+  .card{background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.85);
+    border-radius:var(--card-radius);box-shadow:0 2px 10px rgba(20,25,50,.06),inset 0 1px 0 rgba(255,255,255,.9)}
+  .card + .card{margin-top:16px}
+  .card-h{display:flex;align-items:center;gap:9px;padding:15px 18px 0}
+  .card-h .dot{width:7px;height:7px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 4px rgba(10,132,255,.14)}
+  .card-h h3{font-size:13.5px;font-weight:650;letter-spacing:-.005em}
+
+  /* master toggle row */
+  .master{display:flex;align-items:center;gap:16px;padding:16px 18px 18px}
+  .master .txt{flex:1}
+  .master .txt b{font-size:14px;font-weight:600}
+  .master .txt p{font-size:12px;color:var(--muted);margin-top:3px}
+
+  /* switch */
+  .sw{position:relative;width:51px;height:31px;border-radius:999px;flex-shrink:0;
+    background:rgba(120,120,128,.32);transition:.25s;box-shadow:inset 0 0 0 1px rgba(0,0,0,.04)}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;
+    background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.22),0 1px 1px rgba(0,0,0,.1);transition:.25s}
+  .sw.on{background:linear-gradient(180deg,#43d968,#30D158)}
+  .sw.on::after{left:22px}
+  .sw.sm{width:44px;height:27px}
+  .sw.sm::after{width:23px;height:23px}
+  .sw.sm.on::after{left:19px}
+
+  /* format list —— 4 列：格式徽标 / 名称说明 / 类型标签 / 启用开关 */
+  .list{padding:6px 10px 12px}
+  .row{display:grid;grid-template-columns:64px 1fr 96px 64px;align-items:center;gap:14px;
+    padding:9px 10px;border-radius:12px;transition:background .18s}
+  .row:hover{background:rgba(255,255,255,.62)}
+  .row + .row{box-shadow:inset 0 1px 0 rgba(0,0,0,.045)}
+  .row .sw{justify-self:end}
+  .ext{font-size:12.5px;font-weight:650;color:#2c2c2e;background:rgba(255,255,255,.85);
+    border:1px solid rgba(0,0,0,.06);border-radius:9px;text-align:center;padding:5px 0;
+    box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .row .name{font-size:13px;font-weight:540}
+  .row .name i{font-style:normal;display:block;font-size:11px;color:var(--muted-2);margin-top:2px;font-weight:400}
+  .kind{font-size:11px;color:#48484a;background:rgba(255,255,255,.7);border:1px solid rgba(0,0,0,.05);
+    border-radius:999px;padding:3px 0;text-align:center;width:70px;justify-self:center}
+  .kind.cad{color:#7a4bd6;background:rgba(185,139,255,.16);border-color:rgba(185,139,255,.3)}
+  .kind.img{color:#0a7f6b;background:rgba(55,214,196,.16);border-color:rgba(55,214,196,.3)}
+  .kind.tool{color:#a35a00;background:rgba(255,159,10,.15);border-color:rgba(255,159,10,.28)}
+
+  /* footer band */
+  .band{margin-top:22px;padding:16px 26px;display:flex;align-items:center;gap:14px;
+    border-top:1px solid rgba(0,0,0,.07);
+    background:linear-gradient(180deg,rgba(255,255,255,.32),rgba(255,255,255,.5))}
+  .btn{font-family:inherit;font-size:13px;font-weight:600;border:none;border-radius:12px;
+    padding:10px 20px;cursor:pointer;transition:.18s;letter-spacing:.01em}
+  .btn.primary{color:#fff;background:linear-gradient(180deg,#3da0ff,#0A84FF);
+    box-shadow:0 6px 16px rgba(10,132,255,.4),inset 0 1px 0 rgba(255,255,255,.45)}
+  .btn.primary:hover{filter:brightness(1.06);transform:translateY(-1px)}
+  .btn.ghost{color:#2c2c2e;background:rgba(255,255,255,.72);border:1px solid rgba(0,0,0,.07);
+    box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .btn.ghost:hover{background:#fff}
+  .status{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+  .status .led{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(48,209,88,.16)}
+
+  /* ---------- window 2 : settings ---------- */
+  .win-set{width:760px}
+  .set-body{padding:18px 24px 24px}
+  .sec{padding:16px 18px 18px;margin-top:14px}
+  .sec:first-child{margin-top:4px}
+  .sec-h{display:flex;align-items:center;gap:9px;margin-bottom:14px}
+  .sec-h .dot{width:7px;height:7px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 4px rgba(10,132,255,.14)}
+  .sec-h h3{font-size:13.5px;font-weight:650}
+  .opt{display:flex;align-items:center;gap:14px}
+  .opt .txt{flex:1}
+  .opt .txt b{font-size:13.5px;font-weight:560}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .field{display:flex;gap:10px;margin-top:14px}
+  .input{flex:1;font-family:inherit;font-size:12.5px;color:#2c2c2e;
+    background:rgba(255,255,255,.78);border:1px solid rgba(0,0,0,.08);border-radius:11px;
+    padding:10px 13px;box-shadow:inset 0 1px 2px rgba(0,0,0,.04)}
+  .input::placeholder{color:var(--muted-2)}
+  .btn.sm{padding:9px 16px;font-size:12.5px;border-radius:11px}
+  .seg{display:inline-flex;gap:3px;padding:3px;background:rgba(120,120,128,.14);
+    border-radius:12px;margin-top:2px}
+  .seg button{font-family:inherit;font-size:12.5px;font-weight:560;border:none;cursor:pointer;
+    padding:8px 16px;border-radius:9px;background:transparent;color:#3a3a3c;transition:.18s}
+  .seg button.sel{background:#fff;color:#1d1d1f;box-shadow:0 1px 4px rgba(0,0,0,.14),0 0 0 1px rgba(0,0,0,.03)}
+  .maint{display:grid;grid-template-columns:1fr 168px;gap:16px}
+  .maint .ops{display:flex;flex-wrap:wrap;gap:9px;align-content:flex-start}
+  .ops .btn{padding:9px 14px;font-size:12px;border-radius:10px}
+  .ops .btn.danger{color:#c2261c;background:rgba(255,255,255,.72)}
+  .prev{border-radius:13px;overflow:hidden;border:1px solid rgba(0,0,0,.06);
+    background:linear-gradient(140deg,#f2f4f8,#e2e6ef);box-shadow:inset 0 1px 0 rgba(255,255,255,.9);position:relative}
+  .prev img{width:100%;height:100%;object-fit:cover;display:block}
+  .prev .cap{position:absolute;left:0;right:0;bottom:0;font-size:10.5px;color:#3a3a3c;
+    background:rgba(255,255,255,.7);backdrop-filter:blur(10px);padding:5px 9px;text-align:center}
+  .env{display:flex;flex-direction:column;gap:2px;margin-top:2px}
+  .env .erow{display:grid;grid-template-columns:18px 132px 72px 1fr;align-items:center;gap:12px;
+    padding:9px 10px;border-radius:10px;font-size:12px}
+  .env .erow:hover{background:rgba(255,255,255,.55)}
+  .env .led{width:9px;height:9px;border-radius:50%;justify-self:center}
+  .led.ok{background:var(--green);box-shadow:0 0 0 3px rgba(48,209,88,.16)}
+  .led.warn{background:#FF9F0A;box-shadow:0 0 0 3px rgba(255,159,10,.16)}
+  .env .nm{font-weight:560;color:#2c2c2e}
+  .env .st{font-size:11px;font-weight:600}
+  .st.ok{color:#1f9d4d}.st.warn{color:#b06a00}
+  .env .ds{color:var(--muted-2)}
+  .env-actions{display:flex;gap:10px;align-items:center;margin-top:14px}
+
+  /* ---------- window 3 : installer ---------- */
+  .win-inst{width:640px}
+  .inst-body{padding:34px 40px 30px;text-align:center}
+  .appicon{width:88px;height:88px;margin:0 auto 18px;border-radius:22px;position:relative;
+    background:linear-gradient(150deg,#5aa9ff,#0A84FF 55%,#0057d6);
+    box-shadow:0 16px 34px rgba(10,132,255,.42),inset 0 1px 0 rgba(255,255,255,.55);
+    display:flex;align-items:center;justify-content:center}
+  .appicon .cube{width:42px;height:42px;border-radius:9px;
+    background:linear-gradient(150deg,rgba(255,255,255,.95),rgba(255,255,255,.6));
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.7),0 6px 14px rgba(0,40,120,.3)}
+  .inst-body h2{font-size:21px;font-weight:700;letter-spacing:-.02em}
+  .inst-body .sub{margin-top:8px;font-size:12.5px;color:var(--muted);line-height:1.6}
+  .steps{display:flex;align-items:center;justify-content:center;gap:0;margin:28px 0 12px}
+  .stepc{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted-2)}
+  .stepc .n{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;background:rgba(120,120,128,.2);color:#8e8e93}
+  .stepc.done .n{background:var(--green);color:#fff}
+  .stepc.cur{color:#1d1d1f;font-weight:600}
+  .stepc.cur .n{background:var(--blue);color:#fff;box-shadow:0 0 0 4px rgba(10,132,255,.16)}
+  .stepl{width:52px;height:1.5px;background:rgba(120,120,128,.28);margin:0 4px}
+  .stepl.done{background:var(--green)}
+
+  /* install-scope chooser (wizard step 2) */
+  .scope{display:flex;flex-direction:column;gap:10px;margin-top:22px;text-align:left}
+  .opt-card{display:flex;align-items:flex-start;gap:13px;padding:14px 16px;border-radius:14px;
+    background:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.85);
+    box-shadow:0 2px 10px rgba(20,25,50,.06),inset 0 1px 0 rgba(255,255,255,.9);
+    cursor:pointer;transition:.18s}
+  .opt-card:hover{background:rgba(255,255,255,.74)}
+  .opt-card.sel{border-color:rgba(10,132,255,.55);background:rgba(10,132,255,.09);
+    box-shadow:0 4px 16px rgba(10,132,255,.18),inset 0 1px 0 rgba(255,255,255,.9)}
+  .radio{width:19px;height:19px;border-radius:50%;flex-shrink:0;margin-top:2px;position:relative;
+    background:rgba(255,255,255,.9);box-shadow:inset 0 0 0 1.5px rgba(0,0,0,.18)}
+  .opt-card.sel .radio{background:linear-gradient(180deg,#3da0ff,#0A84FF);
+    box-shadow:0 0 0 3px rgba(10,132,255,.16),inset 0 0 0 1.5px rgba(255,255,255,.5)}
+  .opt-card.sel .radio::after{content:"";position:absolute;left:50%;top:50%;width:7px;height:7px;
+    border-radius:50%;background:#fff;transform:translate(-50%,-50%)}
+  .opt-card .oc-txt{flex:1}
+  .opt-card .oc-txt b{display:block;font-size:13.5px;font-weight:600}
+  .opt-card .oc-txt p{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.55}
+  .opt-card code{font-family:ui-monospace,Consolas,"Cascadia Mono",monospace;font-size:10.5px;
+    color:#3a3a3c;background:rgba(0,0,0,.055);border-radius:5px;padding:1px 5px;white-space:nowrap}
+  .opt-card .tag{font-size:10.5px;font-weight:600;color:#48484a;white-space:nowrap;margin-left:auto;
+    background:rgba(120,120,128,.14);border-radius:999px;padding:2px 9px}
+  .opt-card.sel .tag{color:#0a6ad6;background:rgba(10,132,255,.14)}
+
+  .inst-card{margin-top:22px;padding:16px 18px;text-align:left}
+  .inst-card .ci{display:flex;align-items:center;gap:12px;font-size:12.5px}
+  .inst-card .ci + .ci{margin-top:11px}
+  .inst-card .ci .k{color:var(--muted);width:64px;flex-shrink:0}
+  .inst-card .ci .v{color:#2c2c2e;font-weight:540}
+  .inst-band{margin-top:26px;padding-top:20px;border-top:1px solid rgba(0,0,0,.07);
+    display:flex;align-items:center;gap:12px}
+  .inst-band .spacer{flex:1}
+  .footnote{max-width:1180px;margin:56px auto 0;color:rgba(255,255,255,.62);
+    font-size:12px;text-align:center;letter-spacing:.02em;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wall"></div>
+<div class="grain"></div>
+
+<header class="board-head">
+  <div class="kicker">Design Draft · Glassmorphism</div>
+  <h1>Bambu 3D 文件关联管理器<br>苹果毛玻璃视觉稿</h1>
+  <p>三块界面、四个画面 —— 管理器主窗口、高级设置、安装向导（选择安装范围 / 安装）。采用半透明毛玻璃面板、圆角、柔和大阴影与系统蓝强调色；标题栏保留标准 Windows 控件（沿用 v1.2.1 移除红黄绿灯的决定）。</p>
+</header>
+
+<section class="tokens">
+  <div class="token"><span class="swatch" style="background:#0A84FF"></span><b>强调蓝</b><span>#0A84FF</span></div>
+  <div class="token"><span class="swatch" style="background:#30D158"></span><b>开关绿</b><span>#30D158</span></div>
+  <div class="token"><span class="swatch" style="background:#1D1D1F"></span><b>主文字</b><span>#1D1D1F</span></div>
+  <div class="token"><span class="swatch" style="background:#6E6E73"></span><b>次要文字</b><span>#6E6E73</span></div>
+  <div class="token"><b>毛玻璃</b><span>blur 40px · saturate 185%</span></div>
+  <div class="token"><b>圆角</b><span>窗口 22 / 卡片 16 / 控件 11</span></div>
+  <div class="token"><b>字体</b><span>SF Pro / PingFang / 微软雅黑</span></div>
+</section>
+
+<main class="stage">
+
+  <!-- ============ 1. MAIN WINDOW ============ -->
+  <div class="shot">
+    <div class="label">01 · 管理器主窗口</div>
+    <div class="window glass win-main">
+      <div class="titlebar">
+        <span class="tb-title">Bambu 3D 文件关联管理器</span>
+        <span class="tb-controls"><i class="tb-min"></i><i class="tb-max"></i><i class="tb-close"></i></span>
+      </div>
+      <div class="main-body">
+        <div class="head">
+          <div>
+            <h2>资源管理器缩略图</h2>
+            <div class="sub">让 3D 文件在 Windows 文件夹中直接显示预览图</div>
+          </div>
+          <div class="chips">
+            <span class="chip">格式 20</span>
+            <span class="chip">已启用 8</span>
+            <span class="chip accent">v1.2.4</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><span class="dot"></span><h3>启用缩略图</h3></div>
+          <div class="master">
+            <div class="sw sm on"></div>
+            <div class="txt">
+              <b>在资源管理器中显示 3D 文件缩略图</b>
+              <p>注册缩略图扩展后，文件夹中的模型文件即显示预览图；不会修改文件的默认打开方式。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><span class="dot"></span><h3>文件格式</h3></div>
+          <div class="list">
+            <div class="row">
+              <span class="ext">.3mf</span>
+              <span class="name">Bambu Studio 项目<i>三维制造格式（可选内嵌封面）</i></span>
+              <span class="kind img">切片输出</span><div class="sw sm on"></div>
+            </div>
+            <div class="row">
+              <span class="ext">.stl</span>
+              <span class="name">立体光刻<i>网格 · 无材质</i></span>
+              <span class="kind">网格</span><div class="sw sm on"></div>
+            </div>
+            <div class="row">
+              <span class="ext">.obj</span>
+              <span class="name">Wavefront 模型<i>网格 · 支持法线</i></span>
+              <span class="kind">网格</span><div class="sw sm on"></div>
+            </div>
+            <div class="row">
+              <span class="ext">.step</span>
+              <span class="name">CAD 模型<i>CAD 内核随安装包自带</i></span>
+              <span class="kind cad">CAD</span><div class="sw sm on"></div>
+            </div>
+            <div class="row">
+              <span class="ext">.fbx</span>
+              <span class="name">Autodesk FBX<i>二进制 / 文本双格式</i></span>
+              <span class="kind">网格</span><div class="sw sm"></div>
+            </div>
+            <div class="row">
+              <span class="ext">.amf</span>
+              <span class="name">增材制造格式<i>XML · 索引约定自动识别</i></span>
+              <span class="kind">网格</span><div class="sw sm on"></div>
+            </div>
+            <div class="row">
+              <span class="ext">.gcode</span>
+              <span class="name">切片输出<i>仅显示首层预览</i></span>
+              <span class="kind tool">刀具路径</span><div class="sw sm"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="band">
+        <button class="btn primary">一键启用缩略图</button>
+        <button class="btn ghost">高级设置</button>
+        <div class="status"><span class="led"></span>已应用：资源管理器缩略图已更新</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 2. SETTINGS ============ -->
+  <div class="shot" style="display:flex;justify-content:center">
+    <div class="label">02 · 高级设置</div>
+    <div class="window glass win-set">
+      <div class="titlebar">
+        <span class="tb-title">高级设置</span>
+        <span class="tb-controls"><i class="tb-min"></i><i class="tb-max"></i><i class="tb-close"></i></span>
+      </div>
+      <div class="set-body">
+
+        <div class="card sec">
+          <div class="sec-h"><span class="dot"></span><h3>打开方式</h3></div>
+          <div class="opt">
+            <div class="sw sm"></div>
+            <div class="txt"><b>把 3D 文件默认交给 Bambu Studio 打开（可选）</b></div>
+          </div>
+          <div class="hint">默认关闭。本软件的主要职责是资源管理器缩略图，抢占「默认打开方式」会改变双击行为。</div>
+          <div class="field">
+            <input class="input" value="C:\Program Files\Bambu Studio\bambu-studio.exe">
+            <button class="btn ghost sm">浏览…</button>
+          </div>
+        </div>
+
+        <div class="card sec">
+          <div class="sec-h"><span class="dot"></span><h3>3MF 缩略图模式</h3></div>
+          <div class="seg">
+            <button class="sel">模式 1：优先使用内嵌图片</button>
+            <button>模式 2：始终自渲染</button>
+          </div>
+          <div class="hint">模式 2 会忽略 3MF 内嵌封面，始终按模型实时渲染。</div>
+        </div>
+
+        <div class="card sec">
+          <div class="sec-h"><span class="dot"></span><h3>维护操作</h3></div>
+          <div class="maint">
+            <div class="ops">
+              <button class="btn ghost danger">还原 / 卸载</button>
+              <button class="btn ghost">清空缩略图缓存</button>
+              <button class="btn ghost">预览示例文件</button>
+              <button class="btn ghost">全选</button>
+              <button class="btn ghost">全不选</button>
+            </div>
+            <div class="prev"><img alt="preview" src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=3D%20printed%20white%20geometric%20vase%2C%20studio%20product%20photo%2C%20soft%20neutral%20background&image_size=square"><div class="cap">缩略图预览</div></div>
+          </div>
+        </div>
+
+        <div class="card sec">
+          <div class="sec-h"><span class="dot"></span><h3>环境检查</h3></div>
+          <div class="env">
+            <div class="erow"><span class="led ok"></span><span class="nm">Bambu Studio</span><span class="st ok">已检测</span><span class="ds">C:\Program Files\Bambu Studio</span></div>
+            <div class="erow"><span class="led ok"></span><span class="nm">CAD 内核 (OCCT)</span><span class="st ok">已就绪</span><span class="ds">随安装包自带，STEP / IGES 可直接渲染</span></div>
+            <div class="erow"><span class="led ok"></span><span class="nm">缩略图组件</span><span class="st ok">已注册</span><span class="ds">CLSID 已写入全部 shell 查找位置</span></div>
+            <div class="erow"><span class="led ok"></span><span class="nm">组策略限制</span><span class="st ok">无</span><span class="ds">未发现禁用缩略图的策略</span></div>
+          </div>
+          <div class="env-actions">
+            <button class="btn ghost sm">重新检查</button>
+            <button class="btn primary sm">修复内核</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 3. INSTALLER · STEP 2 (scope) ============ -->
+  <div class="shot" style="display:flex;justify-content:center">
+    <div class="label">03 · 安装向导 · 选择安装范围</div>
+    <div class="window glass win-inst">
+      <div class="titlebar">
+        <span class="tb-title">安装 Bambu 3D 文件关联管理器</span>
+        <span class="tb-controls"><i class="tb-min"></i><i class="tb-max"></i><i class="tb-close"></i></span>
+      </div>
+      <div class="inst-body">
+        <h2>选择安装范围</h2>
+        <div class="sub">决定注册表与文件的落盘位置；安装完成后不可在软件内更改。</div>
+
+        <div class="steps">
+          <div class="stepc done"><span class="n">✓</span>前言</div>
+          <div class="stepl done"></div>
+          <div class="stepc cur"><span class="n">2</span>选择安装范围</div>
+          <div class="stepl"></div>
+          <div class="stepc"><span class="n">3</span>安装</div>
+          <div class="stepl"></div>
+          <div class="stepc"><span class="n">4</span>完成</div>
+        </div>
+
+        <div class="scope">
+          <div class="opt-card sel">
+            <span class="radio"></span>
+            <div class="oc-txt">
+              <b>仅为我安装（单用户）</b>
+              <p>注册表写入 <code>HKEY_CURRENT_USER</code>，装到 <code>%LOCALAPPDATA%\Programs\Bambu3DAssoc</code>。不需要管理员权限，缩略图仅对当前账户生效。</p>
+            </div>
+            <span class="tag">无需管理员</span>
+          </div>
+          <div class="opt-card">
+            <span class="radio"></span>
+            <div class="oc-txt">
+              <b>为所有用户安装（全系统）</b>
+              <p>注册表写入 <code>HKEY_LOCAL_MACHINE</code>，装到 <code>C:\Program Files\Bambu3DAssoc</code>。本机所有账户共享缩略图，安装时需管理员权限（UAC）。</p>
+            </div>
+            <span class="tag">需管理员</span>
+          </div>
+        </div>
+
+        <div class="inst-band">
+          <button class="btn ghost">上一步</button>
+          <div class="spacer"></div>
+          <button class="btn primary">下一步</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 4. INSTALLER · STEP 3 (install) ============ -->
+  <div class="shot" style="display:flex;justify-content:center">
+    <div class="label">04 · 安装向导 · 安装</div>
+    <div class="window glass win-inst">
+      <div class="titlebar">
+        <span class="tb-title">安装 Bambu 3D 文件关联管理器</span>
+        <span class="tb-controls"><i class="tb-min"></i><i class="tb-max"></i><i class="tb-close"></i></span>
+      </div>
+      <div class="inst-body">
+        <div class="appicon"><span class="cube"></span></div>
+        <h2>安装 Bambu 3D 文件关联管理器</h2>
+        <div class="sub">为 3MF / STL / OBJ / STEP 等格式启用资源管理器缩略图<br>卸载随时可用，绝不会改变文件的默认打开方式。</div>
+
+        <div class="steps">
+          <div class="stepc done"><span class="n">✓</span>前言</div>
+          <div class="stepl done"></div>
+          <div class="stepc done"><span class="n">✓</span>选择安装范围</div>
+          <div class="stepl done"></div>
+          <div class="stepc cur"><span class="n">3</span>安装</div>
+          <div class="stepl"></div>
+          <div class="stepc"><span class="n">4</span>完成</div>
+        </div>
+
+        <div class="card inst-card">
+          <div class="ci"><span class="k">版本</span><span class="v">1.2.4（当前未安装旧版，全新安装）</span></div>
+          <div class="ci"><span class="k">安装范围</span><span class="v">仅为我安装（单用户 · HKCU）</span></div>
+          <div class="ci"><span class="k">安装到</span><span class="v">C:\Users\starynas\AppData\Local\Programs\Bambu3DAssoc</span></div>
+          <div class="ci"><span class="k">占用</span><span class="v">约 42 MB（含随包自带的 CAD 内核 OCCT 40.7 MB）</span></div>
+          <div class="ci"><span class="k">附加</span><span class="v">☐ 创建桌面快捷方式</span></div>
+        </div>
+
+        <div class="inst-band">
+          <button class="btn ghost">上一步</button>
+          <div class="spacer"></div>
+          <button class="btn primary">安装</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div class="footnote">
+  视觉稿 · 仅为方向确认用，非最终实现。确认后按已定技术（原生 Win32 + DWM 材质）进入实现。<br>
+  本轮修订：① 主窗口移除格式缩略图列（5 列 → 4 列） ② 安装范围改由安装向导选择 ③ 插件包（OCCT 内核）改为随安装包自带
+</div>
+</body>
+</html>

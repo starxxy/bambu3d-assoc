@@ -1,0 +1,46 @@
+# ---- 安装包后缀默认忽略 ----
+*.exe
+*.msi
+*.zip
+
+# 但 installers/ 下的安装包必须入库（先忽略、后放行）
+!installers/**
+!installers/**/*
+
+# ---- 构建产物（可由源码重建）----
+build/
+build-occ/
+*.obj
+*.tlog
+*.lastbuildstate
+*.recipe
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+.vs/
+Debug/
+Release/
+
+# ---- 原始输出与内核包（已归档 / 已内含）----
+installer/Output/
+installer/occt/
+installer/*.log
+
+# ---- Python ----
+__pycache__/
+*.pyc
+
+# ---- AI 工作记忆 ----
+.workbuddy/
+.workbuddy-ai/
+
+# ---- 安全：含明文密钥，禁止入库 ----
+# （v1.3.0 起付费机制退役，相关文档已移出公开仓库）
+*.pem
+*.key
+*.pfx
+*.p12
+*private-key*
+*license-private*
+redeem_records*
